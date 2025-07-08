@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My App Website</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+        }
+        
+        p {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+            line-height: 1.6;
+        }
+        
+        .download-buttons {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            background: #667eea;
+            color: white;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+        
+        .btn:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+        
+        .btn.android {
+            background: #34d399;
+        }
+        
+        .btn.android:hover {
+            background: #10b981;
+        }
+        
+        .app-preview {
+            margin: 40px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+        
+        .feature {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .feature h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .feature p {
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 0;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 2em;
+            }
+            
+            .download-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 MyApp</h1>
+        <p>Experience the future of mobile apps. Download our app now and get started with amazing features!</p>
+        
+        <div class="app-preview">
+            <h2>📱 App Preview</h2>
+            <p>Our app provides seamless user experience with modern design and powerful features.</p>
+        </div>
+        
+        <div class="download-buttons">
+            <a href="#" class="btn" id="ios-btn">📱 Download for iOS</a>
+            <a href="#" class="btn android" id="android-btn">🤖 Download for Android</a>
+        </div>
+        
+        <div class="features">
+            <div class="feature">
+                <h3>🎯 Easy to Use</h3>
+                <p>Intuitive interface designed for everyone</p>
+            </div>
+            <div class="feature">
+                <h3>⚡ Fast Performance</h3>
+                <p>Optimized for speed and efficiency</p>
+            </div>
+            <div class="feature">
+                <h3>🔒 Secure</h3>
+                <p>Your data is protected with advanced security</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Detect user device and show appropriate download button
+        const iosBtn = document.getElementById('ios-btn');
+        const androidBtn = document.getElementById('android-btn');
+        
+        const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        
+        // Check if iOS
+        if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+            iosBtn.style.display = 'inline-block';
+            androidBtn.style.display = 'none';
+            iosBtn.href = 'https://apps.apple.com/app/your-app'; // Replace with your App Store URL
+        }
+        // Check if Android
+        else if (/android/i.test(userAgent)) {
+            androidBtn.style.display = 'inline-block';
+            iosBtn.style.display = 'none';
+            androidBtn.href = 'https://play.google.com/store/apps/details?id=your.app'; // Replace with your Play Store URL
+        }
+        // Desktop - show both buttons
+        else {
+            iosBtn.href = 'https://apps.apple.com/app/your-app';
+            androidBtn.href = 'https://play.google.com/store/apps/details?id=your.app';
+        }
+        
+        // Handle universal links
+        function handleAppRedirect(path) {
+            const timeout = 2000; // 2 seconds
+            const start = Date.now();
+            
+            // Try to open the app
+            window.location = `myapp://${path}`;
+            
+            // Fallback to store if app is not installed
+            setTimeout(() => {
+                if (Date.now() - start < timeout + 100) {
+                    // App likely not installed, redirect to store
+                    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
+                        window.location = 'https://apps.apple.com/app/your-app';
+                    } else {
+                        window.location = 'https://play.google.com/store/apps/details?id=your.app';
+                    }
+                }
+            }, timeout);
+        }
+        
+        // Example: Handle specific routes
+        const urlParams = new URLSearchParams(window.location.search);
+        const deepLink = urlParams.get('link');
+        
+        if (deepLink) {
+            handleAppRedirect(deepLink);
+        }
+    </script>
+</body>
+</html>
