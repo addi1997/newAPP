@@ -106,6 +106,15 @@
             margin-bottom: 0;
         }
         
+        .redirect-notice {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #1976d2;
+        }
+        
         @media (max-width: 768px) {
             .container {
                 padding: 20px;
@@ -124,6 +133,10 @@
 </head>
 <body>
     <div class="container">
+        <div id="redirect-notice" class="redirect-notice" style="display: none;">
+            <p>🚀 Opening app... If it doesn't open automatically, use the download buttons below.</p>
+        </div>
+        
         <h1>🚀 MyApp</h1>
         <p>Experience the future of mobile apps. Download our app now and get started with amazing features!</p>
         
@@ -154,58 +167,143 @@
     </div>
 
     <script>
+        // Configuration - Update these URLs
+        const APP_STORE_URL = 'https://apps.apple.com/app/your-app';
+        const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.vocalnewsapp';
+        const CUSTOM_SCHEME = 'vocalnewsapp'; // Your app's custom scheme
+        
         // Detect user device and show appropriate download button
         const iosBtn = document.getElementById('ios-btn');
         const androidBtn = document.getElementById('android-btn');
+        const redirectNotice = document.getElementById('redirect-notice');
         
         const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+        const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
+        const isAndroid = /android/i.test(userAgent);
         
-        // Check if iOS
-        if (/iPad|iPhone|iPod/.test(userAgent) && !window.MSStream) {
+        // Set up download buttons based on device
+        if (isIOS) {
             iosBtn.style.display = 'inline-block';
             androidBtn.style.display = 'none';
-            iosBtn.href = 'https://apps.apple.com/app/your-app'; // Replace with your App Store URL
-        }
-        // Check if Android
-        else if (/android/i.test(userAgent)) {
+            iosBtn.href = APP_STORE_URL;
+        } else if (isAndroid) {
             androidBtn.style.display = 'inline-block';
             iosBtn.style.display = 'none';
-            androidBtn.href = 'https://play.google.com/store/apps/details?id=your.app'; // Replace with your Play Store URL
-        }
-        // Desktop - show both buttons
-        else {
-            iosBtn.href = 'https://apps.apple.com/app/your-app';
-            androidBtn.href = 'https://play.google.com/store/apps/details?id=your.app';
+            androidBtn.href = PLAY_STORE_URL;
+        } else {
+            // Desktop - show both buttons
+            iosBtn.href = APP_STORE_URL;
+            androidBtn.href = PLAY_STORE_URL;
         }
         
-        // Handle universal links
-        function handleAppRedirect(path) {
-            const timeout = 2000; // 2 seconds
+        // Universal app redirect function
+        function redirectToApp(path = '') {
+            const timeout = 2500; // 2.5 seconds
             const start = Date.now();
             
-            // Try to open the app
-            window.location = `myapp://${path}`;
+            // Show redirect notice
+            redirectNotice.style.display = 'block';
             
-            // Fallback to store if app is not installed
+            // Try multiple methods to open the app
+            let appOpened = false;
+            
+            // Method 1: Custom URL scheme (works for both iOS and Android)
+            const customURL = `${CUSTOM_SCHEME}://${path}`;
+            
+            // Method 2: Try to open via custom scheme
+            if (isIOS) {
+                // For iOS, try custom scheme first
+                window.location.href = customURL;
+            } else if (isAndroid) {
+                // For Android, try intent first, then custom scheme
+                const intentURL = `intent://${path}#Intent;scheme=${CUSTOM_SCHEME};package=com.vocalnewsapp;end`;
+                window.location.href = intentURL;
+                
+                // Fallback to custom scheme after a short delay
+                setTimeout(() => {
+                    if (Date.now() - start < 500) {
+                        window.location.href = customURL;
+                    }
+                }, 100);
+            }
+            
+            // Check if app opened successfully
+            const checkAppOpened = () => {
+                if (document.hidden || document.webkitHidden) {
+                    appOpened = true;
+                    redirectNotice.style.display = 'none';
+                }
+            };
+            
+            // Listen for visibility change (indicates app might have opened)
+            document.addEventListener('visibilitychange', checkAppOpened);
+            document.addEventListener('webkitvisibilitychange', checkAppOpened);
+            
+            // Fallback to store if app doesn't open
             setTimeout(() => {
-                if (Date.now() - start < timeout + 100) {
-                    // App likely not installed, redirect to store
-                    if (/iPad|iPhone|iPod/.test(navigator.userAgent)) {
-                        window.location = 'https://apps.apple.com/app/your-app';
-                    } else {
-                        window.location = 'https://play.google.com/store/apps/details?id=your.app';
+                if (!appOpened && Date.now() - start >= timeout - 100) {
+                    redirectNotice.style.display = 'none';
+                    
+                    // Redirect to appropriate store
+                    if (isIOS) {
+                        window.location.href = APP_STORE_URL;
+                    } else if (isAndroid) {
+                        window.location.href = PLAY_STORE_URL;
                     }
                 }
             }, timeout);
         }
         
-        // Example: Handle specific routes
-        const urlParams = new URLSearchParams(window.location.search);
-        const deepLink = urlParams.get('link');
-        
-        if (deepLink) {
-            handleAppRedirect(deepLink);
+        // Handle deep links from URL parameters
+        function handleDeepLinks() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const deepLink = urlParams.get('link') || urlParams.get('path');
+            
+            if (deepLink) {
+                // Wait a bit for the page to load, then redirect
+                setTimeout(() => {
+                    redirectToApp(deepLink);
+                }, 500);
+            }
         }
+        
+        // Handle app links (when user clicks on your domain links)
+        function handleAppLinks() {
+            const path = window.location.pathname;
+            const search = window.location.search;
+            
+            // If this is a deep link path (not just the homepage)
+            if (path !== '/' && path !== '') {
+                const deepLinkPath = path.substring(1) + search; // Remove leading slash
+                setTimeout(() => {
+                    redirectToApp(deepLinkPath);
+                }, 500);
+            }
+        }
+        
+        // Add click handlers for download buttons as fallback
+        iosBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            redirectToApp();
+        });
+        
+        androidBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            redirectToApp();
+        });
+        
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            handleDeepLinks();
+            handleAppLinks();
+        });
+        
+        // Handle browser back button
+        window.addEventListener('pageshow', (event) => {
+            if (event.persisted) {
+                redirectNotice.style.display = 'none';
+            }
+        });
     </script>
 </body>
 </html>
